@@ -126,7 +126,6 @@ def main():
     trans_img, blocks, edges = transform_to_block(img, 8, 8)
     # Calculate the DCT transform 
     dct_res     = dct2d(blocks)
-    print(type(dct_res))
     # Quantization
     qnt_res     = quantization(dct_res)
 
@@ -134,7 +133,7 @@ def main():
     # Dequantization
     dqnt_res    = dequantization(qnt_res)
     # Calculate the inverse DCT transform
-    idct_res    = idct2d(dct_res)
+    idct_res    = idct2d(dqnt_res)
     # Reconstruct the image
     reconst_img = reconstruct_from_blocks(idct_res, img_line, img_column)
     # Remove the 0-edges
