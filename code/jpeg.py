@@ -31,12 +31,12 @@ def reconstruct_from_blocks(blocks, H, W):
 
     """
     total_lines = []
-    N_blocks = int(W / blocks[0].shape[0]) + 1
+    N_blocks    = int(W / blocks[0].shape[0]) + 1
 
     for n in range(0, len(blocks) - N_blocks + 1, N_blocks):
         res = np.concatenate(blocks[n:n + N_blocks], axis=1)
         total_lines.append(res)
-    
+
     return np.concatenate(total_lines)
 
 def transform_to_block(image, H, W):
@@ -52,7 +52,7 @@ def transform_to_block(image, H, W):
     trans_image = image.copy()
     n_lines     = 0
     n_columns   = 0
-    
+
     l, c = trans_image.shape
 
     # Fill image with 0-edge if needed
@@ -60,7 +60,7 @@ def transform_to_block(image, H, W):
     while (l % H):
         trans_image = np.vstack((trans_image, np.zeros(trans_image.shape[1])))
         l           = trans_image.shape[0]
-        n_lines    += 1 
+        n_lines    += 1
 
     # Column
     while (c % W):
@@ -87,27 +87,21 @@ def main():
     img_line   = img.shape[0]
     img_column = img.shape[1]
 
+    # Encoding
     # Convert to float64
     img  = img.astype(np.float64)
-
     # Create the 8x8 blocks
     trans_img, blocks, edges = transform_to_block(img, 8, 8)
+    # Calculate the DCT transform 
+    dct_res     = dct2d(blocks)
 
-    # Calculate the DCT transform for each block
-    dct_res = []
-    for b in blocks:
-        dct_res.append(dct2d(b))
-
-    # Reconstruct the image
-    # Calculate the inverse DCT transform for each block
-    idct_res = []
-    for r in dct_res:
-        idct_res.append(idct2d(r))
-
+    # Decoding
+    # Calculate the inverse DCT transform
+    idct_res    = idct2d(dct_res)
     # Reconstruct the image
     reconst_img = reconstruct_from_blocks(idct_res, img_line, img_column)
-
     # Remove the 0-edges
+    # TODO: Move to reconstruct_from_blocks function
     for lin in range(edges[0]):
         reconst_img = np.delete(reconst_img, -1, axis=0)
     for col in range(edges[1]):
@@ -115,9 +109,9 @@ def main():
 
     # Calculate the error
     error = reconst_img - img
-    print(np.mean(error))
+    print(f"Error: {np.mean(error)}")
 
-    # 
+    # Convert to uint8 
     img         = img.astype(np.uint8)
     reconst_img = reconst_img.astype(np.uint8)
 
