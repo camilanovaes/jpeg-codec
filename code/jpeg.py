@@ -81,6 +81,38 @@ def transform_to_block(image, H, W):
 
     return trans_image, blocks, edges
 
+def quantization(G):
+    """
+
+    Args:
+        G : DCT coefficients
+
+    Return:
+
+    """
+    return(np.divide(G, Q))
+
+def dequantization(G):
+    """
+
+    Args:
+        G :
+
+    Return:
+
+    """
+    return(np.multiply(G, Q))
+
+#TODO: put Q in the right place
+Q = np.array([[16, 11, 10, 16, 24, 40, 51, 61],
+              [12, 12, 14, 19, 26, 58, 60, 55],
+              [14, 13, 16, 24, 40, 57, 69, 56],
+              [14, 17, 22, 29, 51, 87, 80, 62],
+              [18, 22, 37, 56, 68, 109, 103, 77],
+              [24, 35, 55, 64, 81, 104, 113, 92],
+              [49, 64, 78, 87, 103, 121, 120, 101],
+              [72, 92, 95, 98, 112, 100, 103, 99]])
+
 def main():
     # Read image
     img        = cv2.imread('dog.jpg', 0)
@@ -94,8 +126,13 @@ def main():
     trans_img, blocks, edges = transform_to_block(img, 8, 8)
     # Calculate the DCT transform 
     dct_res     = dct2d(blocks)
+    print(type(dct_res))
+    # Quantization
+    qnt_res     = quantization(dct_res)
 
     # Decoding
+    # Dequantization
+    dqnt_res    = dequantization(qnt_res)
     # Calculate the inverse DCT transform
     idct_res    = idct2d(dct_res)
     # Reconstruct the image
