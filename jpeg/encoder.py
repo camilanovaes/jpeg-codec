@@ -17,9 +17,9 @@ class Encoder():
     def quantization(self, G, type):
         """Quantization"""
         if (type == 'l'):
-            return(np.divide(G, utils.Q).round().astype(np.int32))
+            return(np.divide(G, utils.Q_c).round().astype(np.int32))
         elif (type == 'c'):
-            return(np.divide(G, utils.Q).round().astype(np.int32))
+            return(np.divide(G, utils.Q_y).round().astype(np.int32))
         else:
             raise ValueError("Type choice %s unknown" %(type))
 

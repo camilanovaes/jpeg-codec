@@ -24,9 +24,9 @@ class Decoder():
     def dequantization(self, G, type):
         """Dequantization"""
         if (type == 'l'):
-            return(np.multiply(G, utils.Q))
+            return(np.multiply(G, utils.Q_c))
         elif (type == 'c'):
-            return(np.multiply(G, utils.Q))
+            return(np.multiply(G, utils.Q_y))
         else:
             raise ValueError("Type choice %s unknown" %(type))
 
