@@ -8,14 +8,13 @@ from cv2 import normalize
 
 
 class Decoder():
-    def __init__(self, qnt_coef, img_info, image):
+    def __init__(self, qnt_coef, img_info):
         """JPEG Decoder"""
-        self.img_width  = img_info[0]
-        self.img_height = img_info[1]
-        self.Y          = qnt_coef[0]
-        self.Cb         = qnt_coef[1]
-        self.Cr         = qnt_coef[2]
-        self.image      = image
+        self.width  = img_info[0]
+        self.height = img_info[1]
+        self.Y      = qnt_coef[0]
+        self.Cb     = qnt_coef[1]
+        self.Cr     = qnt_coef[2]
 
     def idct(self, blocks):
         """Inverse Discrete Cosine Transform 2D"""
@@ -24,9 +23,9 @@ class Decoder():
     def dequantization(self, G, type):
         """Dequantization"""
         if (type == 'l'):
-            return(np.multiply(G, utils.Q_c))
-        elif (type == 'c'):
             return(np.multiply(G, utils.Q_y))
+        elif (type == 'c'):
+            return(np.multiply(G, utils.Q_c))
         else:
             raise ValueError("Type choice %s unknown" %(type))
 
@@ -43,9 +42,9 @@ class Decoder():
         idct_Cr = self.idct(dqnt_Cr)
 
         # Reconstruct image from blocks
-        Y  = utils.reconstruct_from_blocks(idct_Y, self.img_width)
-        Cb = utils.reconstruct_from_blocks(idct_Cb, self.img_width)
-        Cr = utils.reconstruct_from_blocks(idct_Cr, self.img_width)
+        Y  = utils.reconstruct_from_blocks(idct_Y, self.width)
+        Cb = utils.reconstruct_from_blocks(idct_Cb, self.width)
+        Cr = utils.reconstruct_from_blocks(idct_Cr, self.width)
 
         img = np.dstack((Y, Cb, Cr)) + 128
 

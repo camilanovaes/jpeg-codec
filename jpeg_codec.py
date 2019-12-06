@@ -12,10 +12,10 @@ img = Image.open(args.filename)
 img_width, img_height = img.size
 
 # Encoder
-encoder = jpeg.encoder.Encoder(img)
-qnt_coef, img_info, image = encoder.process()
+encoder  = jpeg.encoder.Encoder(img)
+qnt_coef = encoder.process()
 
 # Decoder
-decoder  = jpeg.decoder.Decoder(qnt_coef, img_info, image)
+decoder  = jpeg.decoder.Decoder(qnt_coef, (encoder.width, encoder.height))
 decoder.process()
 

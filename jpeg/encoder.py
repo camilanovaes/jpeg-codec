@@ -1,5 +1,5 @@
 from PIL import Image
-from scipy.fftpack import dct
+from scipy.fftpack import dct, idct
 import numpy as np
 import jpeg.utils as utils
 import skimage.util
@@ -8,7 +8,9 @@ import skimage.util
 class Encoder():
     def __init__(self, image):
         """JPEG Encoder"""
-        self.image = image
+        self.image  = image
+        self.width  = None
+        self.height = None
 
     def dct(self, blocks):
         """Discrete Cosine Transform 2D"""
@@ -17,48 +19,69 @@ class Encoder():
     def quantization(self, G, type):
         """Quantization"""
         if (type == 'l'):
-            return(np.divide(G, utils.Q_c).round().astype(np.int32))
+            return(np.divide(G, utils.Q_y).round().astype(np.float64))
         elif (type == 'c'):
-            return(np.divide(G, utils.Q_y).round().astype(np.int32))
+            return(np.divide(G, utils.Q_c).round().astype(np.float64))
         else:
             raise ValueError("Type choice %s unknown" %(type))
+
+    def downsampling(self, img_ycbcr, nrow, ncol, k=2, type=0):
+        """ Downsamplig function
+
+        Args:
+            img_ycbcr : Image matrix with 3 channels: Y, Cb and Cr
+            nrow      : Number of rows
+            ncol      : Number of columns
+            k         : Downsampling reduction factor
+            type      : Downsampling types. Type 0, represents no downsampling.
+                        Type 1, represents columns reduction, and type 2, rows
+                        and columns reduction.
+
+        Returns:
+            {Cr,Cb}: tuple
+
+        """
+        col_d = np.arange(k,ncol, step=k+1)
+        row_d  = np.arange(k, nrow, step=k+1)
+
+        if type == 1:
+            ds_img = np.delete(img_ycbcr, col_d, axis=1)
+        elif type == 2:
+            ds_img = np.delete(img_ycbcr, col_d, axis=1)
+            ds_img = np.delete(ds_img, row_d, axis=0)
+        else:
+            ds_img = img_ycbcr
+
+        return ds_img[:,:,1],ds_img[:,:,2]
 
     def process(self):
 
         # Image width and height
-        src_img_width, src_img_height = self.image.size
-        print(f'Image: W = {src_img_width}, H = {src_img_height}')
+        src_img_height, src_img_width = self.image.size
+        print(f'Image: H = {src_img_height}, W = {src_img_width}')
 
         # Convert to numpy matrix
         src_img_mtx = np.asarray(self.image)
 
-        # Add zero-padding if needed
-        if (src_img_width % 8 != 0):
-            img_width = src_img_width // 8 * 8 + 8
-        else:
-            img_width = src_img_width
-
-        if (src_img_height % 8 != 0):
-            img_height = src_img_height // 8 * 8 + 8
-        else:
-            img_height = src_img_height
-
-        # Copy data to new matrix
-        img_mtx = np.zeros((img_height, img_width, 3), dtype=np.uint8)
-        for y in range(src_img_height):
-            for x in range(src_img_width):
-                img_mtx[y][x] = src_img_mtx[y][x]
-
-        print(f'New Image size: W = {img_width}, H = {img_height}')
-
         # Convert 'RGB' to 'YCbCr'
-        Y, Cb, Cr = Image.fromarray(img_mtx).convert('YCbCr').split()
+        img_ycbcr = Image.fromarray(src_img_mtx).convert('YCbCr')
+        img_ycbcr = np.asarray(img_ycbcr).astype(np.float64)
+
+        # Apply downsampling to Cb and Cr
+        Cb, Cr = self.downsampling(img_ycbcr, src_img_height, src_img_width)
 
         # Convert to numpy array
-        Y   = np.asarray(Y).astype(np.int32) - 128
-        Cb  = np.asarray(Cb).astype(np.int32) - 128
-        Cr  = np.asarray(Cr).astype(np.int32) - 128
-        img = np.dstack((Y, Cb, Cr))
+        Y   = img_ycbcr[:,:,0] - 128
+        Cb  = Cb - 128
+        Cr  = Cr - 128
+
+        # Add zero-padding if needed
+        Y  = utils.zero_padding(Y)
+        Cb = utils.zero_padding(Cb)
+        Cr = utils.zero_padding(Cr)
+
+        # Save new size
+        self.height, self.width = Y.shape
 
         # Transform channels into blocks
         Y_bck  = utils.transform_to_block(Y)
@@ -75,5 +98,5 @@ class Encoder():
         Cb_qnt = self.quantization(Cb_dct, 'c')
         Cr_qnt = self.quantization(Cr_dct, 'c')
 
-        return ((Y_qnt, Cb_qnt, Cr_qnt), (img_width, img_height), img)
+        return (Y_qnt, Cb_qnt, Cr_qnt)
 

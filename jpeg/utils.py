@@ -58,3 +58,30 @@ def transform_to_block(image):
 
     return blocks
 
+def zero_padding(matrix):
+    """ Add zero-padding
+
+    Args:
+        matrix :
+
+    """
+    ncol, nrow = matrix.shape[0], matrix.shape[1]
+
+    if (ncol % 8 != 0):
+        img_width = ncol // 8 * 8 + 8
+    else:
+        img_width = ncol
+
+    if (nrow % 8 != 0):
+        img_height = nrow // 8 * 8 + 8
+    else:
+        img_height = nrow
+
+    # Copy data to new matrix
+    new_mtx = np.zeros((img_width, img_height), dtype=np.float64)
+    for y in range(ncol):
+        for x in range(nrow):
+            new_mtx[y][x] = matrix[y][x]
+
+    return new_mtx
+
