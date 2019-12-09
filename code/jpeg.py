@@ -26,6 +26,7 @@ def reconstruct_from_blocks(blocks, edges, H, W, new_W):
 
     Args:
         blocks : nxm windowing
+        edges  : an array [l,c] with the number of extra lines and columns on the new image
         H      : original image height
         W      : original image width
         new_W  : new image width after nxm windowing
@@ -66,14 +67,12 @@ def transform_to_block(image, H, W):
    
     # Fill image with 0-edge if needed
     # Lines
-    #print(l%H)
     if( (l % H) > 0 ):
         j = H - (l % H)
         trans_image = np.vstack((trans_image,np.zeros([j,trans_image.shape[1]])))
         n_lines = j
 
     # Column
-    #print(c%W)
     if( (c % W) > 0 ):
         i = W - (c % W)
         trans_image = np.column_stack((trans_image,np.zeros([trans_image.shape[0],i])))
