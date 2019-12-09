@@ -21,23 +21,32 @@ def idct2d(blocks):
     """
     return idct(idct(blocks, axis=0, norm = 'ortho'), axis=1, norm = 'ortho')
 
-def reconstruct_from_blocks(blocks, H, W):
+def reconstruct_from_blocks(blocks, edges, H, W, new_W):
     """ Inverse Discrete Cosine Transform 2D
 
     Args:
-        blocks :
-        H      :
-        W      :
+        blocks : nxm windowing
+        H      : original image height
+        W      : original image width
+        new_W  : new image width after nxm windowing
 
     """
     total_lines = []
-    N_blocks    = int(W / blocks[0].shape[0]) + 1
+    #save the number of blocks per line on the new image
+    N_blocks    = int(new_W / blocks[0].shape[0])
 
-    for n in range(0, len(blocks) - N_blocks + 1, N_blocks):
-        res = np.concatenate(blocks[n:n + N_blocks], axis=1)
+    for n in range(0, (len(blocks)+1)-N_blocks, N_blocks):
+        res = np.concatenate(blocks[n:n+N_blocks], axis=1)
         total_lines.append(res)
+    
+    new_image = np.concatenate(total_lines)
+    # Remove the 0-edges
+    if(edges[0] > 0):
+        new_image = np.delete(new_image, np.s_[H:new_image.shape[0]], axis=0)
+    if(edges[1] > 0):
+        new_image = np.delete(new_image, np.s_[W:new_image.shape[1]], axis=1)
 
-    return np.concatenate(total_lines)
+    return new_image 
 
 def transform_to_block(image, H, W):
     """ Transform image into N HxW blocks
@@ -54,19 +63,21 @@ def transform_to_block(image, H, W):
     n_columns   = 0
 
     l, c = trans_image.shape
-
+   
     # Fill image with 0-edge if needed
     # Lines
-    while (l % H):
-        trans_image = np.vstack((trans_image, np.zeros(trans_image.shape[1])))
-        l           = trans_image.shape[0]
-        n_lines    += 1
+    #print(l%H)
+    if( (l % H) > 0 ):
+        j = H - (l % H)
+        trans_image = np.vstack((trans_image,np.zeros([j,trans_image.shape[1]])))
+        n_lines = j
 
     # Column
-    while (c % W):
-        trans_image = np.column_stack((trans_image, np.zeros(trans_image.shape[0])))
-        c           = trans_image.shape[1]
-        n_columns  += 1
+    #print(c%W)
+    if( (c % W) > 0 ):
+        i = W - (c % W)
+        trans_image = np.column_stack((trans_image,np.zeros([trans_image.shape[0],i])))
+        n_columns = i
 
     # Save edges to remove later
     edges = np.array([n_lines, n_columns])
@@ -78,7 +89,7 @@ def transform_to_block(image, H, W):
     for i in range(0, l - H + 1, H):
         for j in range(0, c - W + 1, W):
             blocks.append(trans_image[i:i+W,j:j+H])
-
+    
     return trans_image, blocks, edges
 
 def quantization(G):
@@ -118,7 +129,6 @@ def main():
     img        = cv2.imread('dog.jpg', 0)
     img_line   = img.shape[0]
     img_column = img.shape[1]
-
     # Encoding
     # Convert to float64
     img  = img.astype(np.float64)
@@ -135,13 +145,8 @@ def main():
     # Calculate the inverse DCT transform
     idct_res    = idct2d(dqnt_res)
     # Reconstruct the image
-    reconst_img = reconstruct_from_blocks(idct_res, img_line, img_column)
-    # Remove the 0-edges
-    # TODO: Move to reconstruct_from_blocks function
-    for lin in range(edges[0]):
-        reconst_img = np.delete(reconst_img, -1, axis=0)
-    for col in range(edges[1]):
-        reconst_img = np.delete(reconst_img, -1, axis=1)
+    transImag_Column = trans_img.shape[1]
+    reconst_img = reconstruct_from_blocks(idct_res, edges, img_line, img_column, transImag_Column)
 
     # Calculate the error
     error = reconst_img - img
