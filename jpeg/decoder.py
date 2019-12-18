@@ -29,20 +29,20 @@ class Decoder():
         else:
             raise ValueError("Type choice %s unknown" %(type))
 
-    def upsampling(self,cb,cr,nrow,ncol,k=2,ds_type=2):
-        col_d = np.arange(k,ncol,step=k+1)
-        x_scale = nrow/cb.shape[0]
-        y_scale = ncol/cb.shape[1]
-        I = np.zeros((nrow,ncol))
-        for i in range(ncol):
-            for j in range(nrow):
-                W = -(((i/x_scale)-np.floor(i/x_scale))-1)
-                H = -(((j/x_scale)-np.floor(j/x_scale))-1)
-                I11 = cb[int(np.floor(i/x_scale)),int(np.floor(j/y_scale))]
-                I12 = cb[int(np.ceil(i/x_scale)),int(np.floor(j/y_scale))]
-                I21 = cb[int(np.floor(i/x_scale)),int(np.ceil(j/y_scale))]
-                I22 = cb[int(np.ceil(i/x_scale)),int(np.ceil(j/y_scale))]
-                I[i,j] = (1-W)*(1-H)*I22 + (W)*(1-H)*I21 + (1-W)*(H)*I12 + (W)*(H)*I11
+    def upsampling(self, cb, cr, nrow, ncol):
+        """Upsampling function
+
+        Args:
+            cb   :
+            cr   :
+            nrow :
+            ncol :
+
+        """
+        up_cb = cv2.resize(cb, dsize=(ncol, nrow))
+        up_cr = cv2.resize(cr, dsize=(ncol, nrow))
+
+        return (up_cb, up_cr)
 
     def process(self):
 
@@ -56,15 +56,15 @@ class Decoder():
         idct_Cb = self.idct(dqnt_Cb)
         idct_Cr = self.idct(dqnt_Cr)
 
-        # Upsampling Cb and Cr
-        self.upsampling(idct_Cb, idct_Cr, self.height, self.width)
-
         # Reconstruct image from blocks
         Y  = utils.reconstruct_from_blocks(idct_Y, self.width)
         Cb = utils.reconstruct_from_blocks(idct_Cb, self.width)
         Cr = utils.reconstruct_from_blocks(idct_Cr, self.width)
 
-        img = np.dstack((Y, Cb, Cr)) + 128
+        # Upsampling Cb and Cr
+        Cb, Cr = self.upsampling(Cb, Cr, self.height, self.width)
+
+        img = np.dstack((Y, Cb, Cr)) + 128.0
 
         # Normalize and convert to uint8
         #

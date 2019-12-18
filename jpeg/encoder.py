@@ -25,7 +25,7 @@ class Encoder():
         else:
             raise ValueError("Type choice %s unknown" %(type))
 
-    def downsampling(self, img_ycbcr, nrow, ncol, k=2, type=0):
+    def downsampling(self, matrix, k=2, type=2):
         """ Downsamplig function
 
         Args:
@@ -38,21 +38,17 @@ class Encoder():
                         and columns reduction.
 
         Returns:
-            {Cr,Cb}: tuple
+            Downsampling matrix
 
         """
-        col_d = np.arange(k,ncol, step=k+1)
-        row_d  = np.arange(k, nrow, step=k+1)
-
         if type == 1:
-            ds_img = np.delete(img_ycbcr, col_d, axis=1)
+            ds_img = matrix[:,0::k]
         elif type == 2:
-            ds_img = np.delete(img_ycbcr, col_d, axis=1)
-            ds_img = np.delete(ds_img, row_d, axis=0)
+            ds_img = matrix[0::k,0::k]
         else:
-            ds_img = img_ycbcr
+            ds_img = matrix
 
-        return ds_img[:,:,1],ds_img[:,:,2]
+        return ds_img
 
     def process(self):
 
@@ -67,13 +63,14 @@ class Encoder():
         img_ycbcr = Image.fromarray(src_img_mtx).convert('YCbCr')
         img_ycbcr = np.asarray(img_ycbcr).astype(np.float64)
 
-        # Apply downsampling to Cb and Cr
-        Cb, Cr = self.downsampling(img_ycbcr, src_img_height, src_img_width)
-
         # Convert to numpy array
         Y   = img_ycbcr[:,:,0] - 128
-        Cb  = Cb - 128
-        Cr  = Cr - 128
+        Cb  = img_ycbcr[:,:,1] - 128
+        Cr  = img_ycbcr[:,:,2] - 128
+
+        # Apply downsampling to Cb and Cr
+        Cb = self.downsampling(Cb, src_img_height, src_img_width)
+        Cr = self.downsampling(Cr, src_img_height, src_img_width)
 
         # Add zero-padding if needed
         Y  = utils.zero_padding(Y)
