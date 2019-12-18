@@ -14,9 +14,9 @@ src_img = np.asarray(img).astype(np.float64)
 img_width, img_height = img.size
 
 # Encoder
-encoder  = jpeg.encoder.Encoder(img)
+encoder    = jpeg.encoder.Encoder(img)
 compressed = encoder.process()
-header = compressed['header']
+header     = compressed['header']
 
 # Decoder
 decoder  = jpeg.decoder.Decoder(header, compressed, (encoder.width, encoder.height))

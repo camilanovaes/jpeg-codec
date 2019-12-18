@@ -114,7 +114,7 @@ class Encoder():
         Y_qnt  = self.quantization(Y_dct, 'l')
         Cb_qnt = self.quantization(Cb_dct, 'c')
         Cr_qnt = self.quantization(Cr_dct, 'c')
-        
+
         # Entropy Encoder
         encoded = {
             LUMINANCE: H_Encoder(Y_qnt, LUMINANCE).encode(),

@@ -18,18 +18,19 @@ class H_Encoder:
     def __init__(self, data, layer_type):
         """Create a encoder based on baseline JPEG Huffman table.
 
-        Arguments:
-            data {dict} -- The luminance and chrominance data in following
-                format.
-                {DC: '..010..', AC: '..010..', }
-            layer_type {LUMINANCE or CHROMINANCE} -- Specify the layer type of
-                data.
-        """
+        Args:
+            data       : The luminance and chrominance data in following format:
+                          {DC: '..010..', AC: '..010..', }
+            layer_type : Specify the layer type of data:
+                         {LUMINANCE or CHROMINANCE}
 
-        self.data = data
+        """
+        self.data       = data
         self.layer_type = layer_type
+
         # List containing differential DCs for multiple blocks.
-        self._diff_dc = None
+        self._diff_dc       = None
+
         # List containing run-length-encoding AC pairs for multiple blocks.
         self._run_length_ac = None
 
@@ -58,12 +59,10 @@ class H_Encoder:
         Huffman table based on `self.layer_type`.
 
         Returns:
-            dict -- A dictionary containing encoded DC and AC. The format is:
-                ```
-                ret = {DC: '01...', AC: '01...'}
-                ```
-        """
+            dict : A dictionary containing encoded DC and AC. The format is:
+                   ret = {DC: '01...', AC: '01...'}
 
+        """
         ret = {}
         ret[DC] = ''.join(encode_huffman(v, self.layer_type)
                           for v in self.diff_dc)
@@ -88,19 +87,19 @@ class H_Decoder:
     def __init__(self, data, layer_type):
         """Create a decoder based on baseline JPEG Huffman table.
 
-        Arguments:
-            data {dict} -- A dictionary containing DC and AC bit string as
-                following format.
-                {DC: '.01..', AC: '.01..'}
-            layer_type {LUMINANCE or CHROMINANCE} -- Specify the layer type of
-                data.
+        Args:
+            data       : A dictionary containing DC and AC bit string as
+                         following format.
+                         {DC: '.01..', AC: '.01..'}
+            layer_type : Specify the layer type of data:
+                         {LUMINANCE or CHROMINANCE}
         """
-
-        self.data = data
+        self.data       = data
         self.layer_type = layer_type
 
         # A list containing all DC of blocks.
         self._dc = None
+
         # A nested 2D list containing all AC of blocks without zig-zag
         # iteration.
         self._ac = None
@@ -159,18 +158,18 @@ class H_Decoder:
 def encode_huffman(value, layer_type):
     """Encode the Huffman coding of value.
 
-    Arguments:
-        value {int or tuple} -- Differential DC (int) or run-length AC (tuple).
-        layer_type {LUMINANCE or CHROMINANCE} -- Specify the layer type of
-            value.
+    Args:
+        value      : Differential DC (int) or run-length AC (tuple).
+        layer_type : Specify the layer type of value:
+                     {LUMINANCE or CHROMINANCE}
 
     Raises:
-        ValueError -- When the value is out of the range.
+        ValueError : When the value is out of the range.
 
     Returns:
-        str -- Huffman encoded bit array.
-    """
+        Huffman encoded bit array.
 
+    """
     def index_2d(table, target):
         for i, row in enumerate(table):
             for j, element in enumerate(row):
@@ -210,20 +209,20 @@ def encode_huffman(value, layer_type):
 def decode_huffman(bit_seq, dc_ac, layer_type):
     """Decode a bit sequence encoded by JPEG baseline Huffman table.
 
-    Arguments:
-        bit_seq {str} -- The encoded bit sequence.
-        dc_ac {DC or AC} -- The type of current.
-        layer_type {LUMINANCE or CHROMINANCE} -- The layer type of bit sequence.
+    Args:
+        bit_seq    : The encoded bit sequence.
+        dc_ac      : The type of current: {DC or AC}
+        layer_type : The layer type of bit sequence: {LUMINANCE or CHROMINANCE}
 
     Raises:
-        IndexError -- When there is not enough bits in bit sequence to decode
-            DIFF value codeword.
-        KeyError -- When not able to find any prefix in current slice of bit
-            sequence in Huffman table.
+        IndexError : When there is not enough bits in bit sequence to decode
+                     DIFF value codeword.
+        KeyError   : When not able to find any prefix in current slice of bit
+                     sequence in Huffman table.
 
     Returns:
-        Generator -- A generator and its item is decoded value which could be an
-            integer (differential DC) or a tuple (run-length-encoded AC).
+        A generator and its item is decoded value which could be an
+        integer (differential DC) or a tuple (run-length-encoded AC).
     """
 
     def diff_value(idx, size):
@@ -774,3 +773,4 @@ HUFFMAN_CATEGORY_CODEWORD = {
         })
     }
 }
+
