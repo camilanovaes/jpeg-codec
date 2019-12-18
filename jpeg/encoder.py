@@ -3,7 +3,8 @@ from scipy.fftpack import dct, idct
 import numpy as np
 import jpeg.utils as utils
 import skimage.util
-
+from bitarray import bitarray, bits2bytes
+from .huffman import H_Encoder, H_Decoder, DC, AC, LUMINANCE, CHROMINANCE
 
 class Encoder():
     def __init__(self, image):
@@ -114,10 +115,29 @@ class Encoder():
         Cb_qnt = self.quantization(Cb_dct, 'c')
         Cr_qnt = self.quantization(Cr_dct, 'c')
 
-        # Entropy encoding
-        Y_entropy  = self.entropy_coding(Y_qnt)
-        Cb_entropy = self.entropy_coding(Cb_qnt)
-        Cr_entropy = self.entropy_coding(Cr_qnt)
+        # Entropy Encoder
+        encoded = {
+            LUMINANCE: H_Encoder(Y_qnt, LUMINANCE).encode(),
+            CHROMINANCE: H_Encoder(
+                np.vstack((Cb_qnt, Cr_qnt)),
+                CHROMINANCE
+            ).encode()
+        }
 
-        return (Y_entropy, Cb_entropy, Cr_entropy)
+        # Combine RGB data as binary in the order:
+        #   LUMINANCE.DC, LUMINANCE.AC, CHROMINANCE.DC, CHROMINANCE.AC
+        order = (encoded[LUMINANCE][DC], encoded[LUMINANCE][AC],
+                 encoded[CHROMINANCE][DC], encoded[CHROMINANCE][AC])
+
+        bits = bitarray(''.join(order))
+
+        return {
+            'data': bits,
+            'header': {
+                # Remaining bits length is the fake filled bits for 8 bits as a
+                # byte.
+                'remaining_bits_length': bits2bytes(len(bits)) * 8 - len(bits),
+                'data_slice_lengths': tuple(len(d) for d in order)
+        }
+    }
 

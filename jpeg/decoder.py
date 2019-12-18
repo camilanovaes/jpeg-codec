@@ -5,16 +5,17 @@ import jpeg.utils as utils
 import skimage.util
 import cv2
 from cv2 import normalize
+from .huffman import H_Encoder, H_Decoder, DC, AC, LUMINANCE, CHROMINANCE, Y, CB, CR
 
 
 class Decoder():
-    def __init__(self, entropy, img_info):
+    def __init__(self, header, compressed, img_info):
         """JPEG Decoder"""
-        self.width   = img_info[0]
-        self.height  = img_info[1]
-        self.Y       = entropy[0]
-        self.Cb      = entropy[1]
-        self.Cr      = entropy[2]
+        self.width  = img_info[0]
+        self.height = img_info[1]
+        self.bits = compressed['data']
+        self.remaining_bits_length = header['remaining_bits_length']
+        self.dsls = header['data_slice_lengths']
 
     def idct(self, blocks):
         """Inverse Discrete Cosine Transform 2D"""
@@ -65,15 +66,49 @@ class Decoder():
 
     def process(self):
 
+        bits = self.bits.to01()
+        remaining_bits_length = self.remaining_bits_length
+        dsls = self.dsls  # data_slice_lengths
+
+        # Preprocessing Byte Sequence:
+        #   1. Remove Remaining (Fake Filled) Bits.
+        #   2. Slice Bits into Dictionary Data Structure for `Decoder`.
+
+        if remaining_bits_length:
+            bits = bits[:-remaining_bits_length]
+
+        # The order of dsls (RGB) is:
+        #   LUMINANCE.DC, LUMINANCE.AC, CHROMINANCE.DC, CHROMINANCE.AC
+        sliced = {
+            LUMINANCE: {
+                DC: bits[:dsls[0]],
+                AC: bits[dsls[0]:dsls[0] + dsls[1]]
+            },
+            CHROMINANCE: {
+                DC: bits[dsls[0] + dsls[1]:dsls[0] + dsls[1] + dsls[2]],
+                AC: bits[dsls[0] + dsls[1] + dsls[2]:]
+            }
+        }
+
+        cb, cr = np.split(H_Decoder(
+            sliced[CHROMINANCE],
+            CHROMINANCE
+        ).decode(), 2)
+        data = {
+            Y: H_Decoder(sliced[LUMINANCE], LUMINANCE).decode(),
+            CB: cb,
+            CR: cr
+        }
+
         # Entropy decoder
         self.Y  = self.entropy_decoding(self.Y)
         self.Cb = self.entropy_decoding(self.Cb)
         self.Cr = self.entropy_decoding(self.Cr)
 
         # Dequantization
-        dqnt_Y  = self.dequantization(self.Y, 'l')
-        dqnt_Cb = self.dequantization(self.Cb, 'c')
-        dqnt_Cr = self.dequantization(self.Cr, 'c')
+        dqnt_Y  = self.dequantization(Y, 'l')
+        dqnt_Cb = self.dequantization(CB, 'c')
+        dqnt_Cr = self.dequantization(CR, 'c')
 
         # Calculate the inverse DCT transform
         idct_Y  = self.idct(dqnt_Y)

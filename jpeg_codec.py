@@ -14,13 +14,11 @@ src_img = np.asarray(img).astype(np.float64)
 img_width, img_height = img.size
 
 # Encoder
-encoder = jpeg.encoder.Encoder(img)
-entropy = encoder.process()
+encoder  = jpeg.encoder.Encoder(img)
+compressed = encoder.process()
+header = compressed['header']
 
 # Decoder
-decoder  = jpeg.decoder.Decoder(entropy, (encoder.width, encoder.height))
-decoded_img = decoder.process()
-
-decoded_img.resize(img_height, img_width, 3)
-print(f'Error: {np.mean(src_img - decoded_img)}')
+decoder  = jpeg.decoder.Decoder(header, compressed, (encoder.width, encoder.height))
+decoder.process()
 
