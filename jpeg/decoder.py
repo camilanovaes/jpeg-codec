@@ -9,13 +9,14 @@ from .huffman import H_Encoder, H_Decoder, DC, AC, LUMINANCE, CHROMINANCE
 
 
 class Decoder():
-    def __init__(self, header, compressed, img_info):
+    def __init__(self, image, header, compressed, img_info):
         """JPEG Decoder"""
         self.width  = img_info[0]
         self.height = img_info[1]
         self.bits   = compressed['data']
         self.remaining_bits_length = header['remaining_bits_length']
         self.dsls   = header['data_slice_lengths']
+        self.image  = image
 
     def idct(self, blocks):
         """Inverse Discrete Cosine Transform 2D"""
@@ -114,7 +115,8 @@ class Decoder():
         #
         img = normalize(img, 0, 0, 255, cv2.NORM_MINMAX, dtype=cv2.CV_8U)
         img = Image.fromarray(img, 'YCbCr').convert('RGB')
-        img.show()
+
+        return img
 
         return np.asarray(img).astype(np.float64)
 
