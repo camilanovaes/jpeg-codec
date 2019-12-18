@@ -8,13 +8,13 @@ from cv2 import normalize
 
 
 class Decoder():
-    def __init__(self, qnt_coef, img_info):
+    def __init__(self, entropy, img_info):
         """JPEG Decoder"""
-        self.width  = img_info[0]
-        self.height = img_info[1]
-        self.Y      = qnt_coef[0]
-        self.Cb     = qnt_coef[1]
-        self.Cr     = qnt_coef[2]
+        self.width   = img_info[0]
+        self.height  = img_info[1]
+        self.Y       = entropy[0]
+        self.Cb      = entropy[1]
+        self.Cr      = entropy[2]
 
     def idct(self, blocks):
         """Inverse Discrete Cosine Transform 2D"""
@@ -44,7 +44,31 @@ class Decoder():
 
         return (up_cb, up_cr)
 
+    def entropy_decoding(self, matrix):
+        """Entropy decoding
+
+        Args:
+            matrix:
+
+        """
+        # Rearrange the image components from "zigzag" order
+        entropy_mtx = np.zeros((matrix.shape[0], 8, 8))
+        for i, block in enumerate(matrix):
+            new_block      = [b for _,b in sorted(zip(utils.zigzag_order, block))]
+            new_block      = np.array(new_block).reshape(8,8)
+            entropy_mtx[i] = new_block
+
+            if (i != 0):
+                entropy_mtx[i][0][0] = matrix[i][0] + matrix[i-1][0]
+
+        return entropy_mtx
+
     def process(self):
+
+        # Entropy decoder
+        self.Y  = self.entropy_decoding(self.Y)
+        self.Cb = self.entropy_decoding(self.Cb)
+        self.Cr = self.entropy_decoding(self.Cr)
 
         # Dequantization
         dqnt_Y  = self.dequantization(self.Y, 'l')
@@ -76,4 +100,6 @@ class Decoder():
         img = normalize(img, 0, 0, 255, cv2.NORM_MINMAX, dtype=cv2.CV_8U)
         img = Image.fromarray(img, 'YCbCr').convert('RGB')
         img.show()
+
+        return np.asarray(img).astype(np.float64)
 

@@ -50,6 +50,25 @@ class Encoder():
 
         return ds_img
 
+    def entropy_coding(self, matrix):
+        """Entropy encoding
+
+        Args:
+            matrix:
+
+        """
+        # Arrange the image components in a "zigzag" order employing run-length
+        #  encoding (RLE) algorithm.
+        entropy_mtx = np.zeros((matrix.shape[0], 64))
+        for i, block in enumerate(matrix):
+            new_block      = block.reshape([64])[utils.zigzag_order]
+            entropy_mtx[i] = new_block
+
+            if (i != 0):
+                entropy_mtx[i][0] = entropy_mtx[i][0] - entropy_mtx[i-1][0]
+
+        return entropy_mtx
+
     def process(self):
 
         # Image width and height
@@ -95,5 +114,10 @@ class Encoder():
         Cb_qnt = self.quantization(Cb_dct, 'c')
         Cr_qnt = self.quantization(Cr_dct, 'c')
 
-        return (Y_qnt, Cb_qnt, Cr_qnt)
+        # Entropy encoding
+        Y_entropy  = self.entropy_coding(Y_qnt)
+        Cb_entropy = self.entropy_coding(Cb_qnt)
+        Cr_entropy = self.entropy_coding(Cr_qnt)
+
+        return (Y_entropy, Cb_entropy, Cr_entropy)
 
