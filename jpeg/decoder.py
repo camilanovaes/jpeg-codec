@@ -5,16 +5,18 @@ import jpeg.utils as utils
 import skimage.util
 import cv2
 from cv2 import normalize
+from .huffman import H_Encoder, H_Decoder, DC, AC, LUMINANCE, CHROMINANCE
 
 
 class Decoder():
-    def __init__(self, qnt_coef, img_info):
+    def __init__(self, image, header, compressed, img_info):
         """JPEG Decoder"""
         self.width  = img_info[0]
         self.height = img_info[1]
-        self.Y      = qnt_coef[0]
-        self.Cb     = qnt_coef[1]
-        self.Cr     = qnt_coef[2]
+        self.bits   = compressed['data']
+        self.remaining_bits_length = header['remaining_bits_length']
+        self.dsls   = header['data_slice_lengths']
+        self.image  = image
 
     def idct(self, blocks):
         """Inverse Discrete Cosine Transform 2D"""
@@ -46,10 +48,29 @@ class Decoder():
 
     def process(self):
 
+        bits = self.bits.to01()
+        remaining_bits_length = self.remaining_bits_length
+        dsls = self.dsls  # data_slice_lengths
+
+        # The order of dsls (RGB) is:
+        #   LUMINANCE.DC, LUMINANCE.AC, CHROMINANCE.DC, CHROMINANCE.AC
+        sliced = {
+            LUMINANCE: {
+                DC: bits[:dsls[0]],
+                AC: bits[dsls[0]:dsls[0] + dsls[1]]
+            },
+            CHROMINANCE: {
+                DC: bits[dsls[0] + dsls[1]:dsls[0] + dsls[1] + dsls[2]],
+                AC: bits[dsls[0] + dsls[1] + dsls[2]:]
+            }
+        }
+        cb, cr = np.split(H_Decoder(sliced[CHROMINANCE], CHROMINANCE).decode(), 2)
+        y = H_Decoder(sliced[LUMINANCE], LUMINANCE).decode()
+
         # Dequantization
-        dqnt_Y  = self.dequantization(self.Y, 'l')
-        dqnt_Cb = self.dequantization(self.Cb, 'c')
-        dqnt_Cr = self.dequantization(self.Cr, 'c')
+        dqnt_Y  = self.dequantization(y, 'l')
+        dqnt_Cb = self.dequantization(cb, 'c')
+        dqnt_Cr = self.dequantization(cr, 'c')
 
         # Calculate the inverse DCT transform
         idct_Y  = self.idct(dqnt_Y)
@@ -75,5 +96,6 @@ class Decoder():
         #
         img = normalize(img, 0, 0, 255, cv2.NORM_MINMAX, dtype=cv2.CV_8U)
         img = Image.fromarray(img, 'YCbCr').convert('RGB')
-        img.show()
+
+        return img
 
