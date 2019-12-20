@@ -112,6 +112,9 @@ class Encoder():
 
         bits = bitarray(''.join(order))
 
+        with open('encoded_img.bin','wb') as f:
+            bits.tofile(f)
+
         return {
             'data': bits,
             'header': {

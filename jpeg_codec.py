@@ -31,5 +31,5 @@ img_final = img[:img_height, :img_width, :]
 print(f'Error: {np.mean(src_img - img_final.astype(np.float64))}')
 
 img_final = Image.fromarray(img_final)
-img_final.show()
+img_final.save("compressed_img.jpg")
 
